@@ -1,0 +1,670 @@
+######
+# FILE : attack_pRideHuang.sage
+# usage : sage attack_pRideHuang.sage
+# Main file for attack on pRide TVT 2021 paper
+#
+#
+# NOTE : here read in locations_utm.py file
+# (driver location, driver grid lower bound, driver grid upper bound)
+# NOTE driver location is only for verification - not available to rider_attack function
+#
+ 
+# Driver locations for g1
+la_locations_utm = [
+( ( 589580, 4515764 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588325, 4514327 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588999, 4515934 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588183, 4514697 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+## Driver locations for g2
+( ( 591695, 4517637 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 591419, 4518004 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 590533, 4517929 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 591378, 4517739 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+## Driver locations for g3
+( ( 597513, 4514546 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 597703, 4515748 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 596552, 4515469 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 596785, 4515701 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+## Driver locations for g4
+( ( 593598, 4513356 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 592119, 4512630 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 592292, 4512619 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 593250, 4513410 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+]
+# Rider location in g
+la_rider_loc_utm = [
+( ( 592461, 4514364 ), ( 591896, 4514201 ), ( 593896, 4516201 ) ) ,
+]
+# grid coords g_lb, g_ub, g1.. , g2.., g3..
+grid_coords_utm = [
+( ( 591896, 4514201 ), ( 593896, 4516201 ) ) ,
+( ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+]
+### End of locations_utm.py file
+ 
+ 
+def compute_circle_intersection(c0, r0, c1, r1):
+# source : paulbourke.net/geometry/circlesphere
+#
+        res = ((-1, -1),(-1,-1))
+        d = ((c0[0] - c1[0]) ** 2 + (c0[1] - c1[1]) ** 2) ** 0.5
+        if d > (r0 + r1) :
+#               print "First condition d > r1 + r2 fails"
+                return res
+        else :
+                rdist = abs(r0 - r1)
+                if d < rdist:
+#                       print "Second condition d < |r1 - r2| fails"
+                        return res
+ 
+        dx = c1[0] - c0[0]
+        dy = c1[1] - c0[1]
+        a = (r0 ** 2 - r1 ** 2 + d**2) / (2 * d)
+        if (r0**2 - a**2) < 0:
+                print "h will be NEGATIVE"
+        h = (r0 **2 - a**2) ** 0.5
+ 
+        x2 = c0[0] + (a/d)*dx
+        y2 = c0[1] + (a/d)*dy
+        rx = -dy * (h/d)
+        ry = dx * (h/d)
+ 
+        res = ((x2+rx, y2+ry),(x2-rx, y2-ry))
+ 
+        return res
+ 
+ 
+def get_ed(A,B, d_x, d_y):
+        ed = ((A - d_x) ** 2 + (B - d_y)**2)
+        return ed
+ 
+def get_ed_coord(A, B):
+        return get_ed(A[0], A[1], B[0], B[1])
+ 
+ 
+def check_in_bounds(pt, x_lb, y_lb, x_ub, y_ub):
+        xv = pt[0]
+        yv = pt[1]
+        if xv < x_lb or xv > x_ub or yv < y_lb or yv > y_ub:
+                return false
+        return true
+ 
+ 
+def verify_tuple_validity(p):
+        cen1 = p[0]
+        rad1 = p[1]
+        cen2 = p[2]
+        rad2 = p[3]
+        cen3 = p[4]
+        rad3 = p[5]
+        cen4 = p[6]
+        rad4 = p[7]
+ 
+        x_lb = p[4][0]
+        y_lb = p[4][1]
+        x_ub = p[2][0]
+        y_ub = p[2][1]
+ 
+ 
+        res = compute_circle_intersection(cen1, rad1, cen2, rad2)
+        if res[0][0] == -1:
+                return (-1, -1)
+ 
+        if check_in_bounds(res[1], x_lb, y_lb, x_ub, y_ub) and check_in_bounds(res[0], x_lb, y_lb, x_ub, y_ub):
+                print "both points are inside grid!!!"
+ 
+        if check_in_bounds(res[1], x_lb, y_lb, x_ub, y_ub):
+                v_res = res[1]
+        else:
+                if check_in_bounds(res[0], x_lb, y_lb, x_ub, y_ub):
+                        v_res = res[0]
+                else:
+                        return (-1, -1)
+ 
+        dist_3 = get_ed_coord(cen3, v_res)
+        dist_3 = dist_3 ** 0.5
+        dist_4 = get_ed_coord(cen4, v_res)
+        dist_4 = dist_4 ** 0.5
+ 
+        if abs(dist_3 - rad3) < 1e-5 and abs(dist_4 < rad4) < 1e-5 :
+                return v_res
+ 
+        return (-1, -1)
+ 
+ 
+def rider_receive_data_from_SP(loc_id):
+        driv = la_locations_utm[loc_id][0]
+        lb = la_locations_utm[loc_id][1]
+        ub = la_locations_utm[loc_id][2]
+        left_bot = (lb[0], lb[1])
+        left_top = (lb[0], ub[1])
+        right_bot = (ub[0], lb[1])
+        right_top = (ub[0], ub[1])
+ 
+        # (squares of) distances computed by driver
+        d1 = get_ed_coord(driv, left_top)
+        d2 = get_ed_coord(driv, left_bot)
+        d3 = get_ed_coord(driv, right_top)
+        d4 = get_ed_coord(driv, right_bot)
+        driv_dist = get_ed_coord(driv, la_rider_loc_utm[0][0])
+ 
+        # blinding distances using random e and r before sending to rider
+        e = randint(0, 2^32)
+        r = randint(0, 2^32)
+ 
+        d1 = d1 * e + r
+        d2 = d2 * e + r
+        d3 = d3 * e + r
+        d4 = d4 * e + r
+        d5 = driv_dist * e + r
+ 
+        return d1, d2, d3, d4, d5, driv_dist
+ 
+ 
+def main_attack(loc_id):
+ 
+        rider_coords = la_rider_loc_utm[0][0]
+ 
+        # (squares of) distances computed by driver from SP (blinded by SP)
+        d1, d2, d3, d4, d5, driv_dist = rider_receive_data_from_SP(loc_id)
+ 
+        # rider computes differences after decryption
+        d12 = d1 - d2
+        d13 = d1 - d3
+        d14 = d1 - d4
+        d15 = d1 - d5
+        d23 = d2 - d3
+        d24 = d2 - d4
+        d25 = d2 - d5
+        d34 = d3 - d4
+        d35 = d3 - d5
+        d45 = d4 - d5
+ 
+        # obtain any simple common factors from coordinates of corners
+        # left_top, left_bot, right_bot and right_top
+        lb = la_locations_utm[loc_id][1]
+        ub = la_locations_utm[loc_id][2]
+        left_bot = (lb[0], lb[1])
+        left_top = (lb[0], ub[1])
+        right_bot = (ub[0], lb[1])
+        right_top = (ub[0], ub[1])
+        x1 = left_top[0]
+        y1 = left_top[1]
+        x2 = left_bot[0]
+        y2 = left_bot[1]
+        x3 = right_top[0]
+        y3 = right_top[1]
+        x4 = right_bot[0]
+        y4 = right_bot[1]
+ 
+        cf1 = gcd(x1 - x2, y1 - y2)
+        cf1 = gcd(cf1, x1 - x3)
+        cf1 = gcd(cf1, y1 - y3)
+ 
+        cf2 = gcd(2, x1 + x2)
+        cf2 = gcd(cf2, y1 + y2)
+        cf2 = gcd(cf2, x1 + x3)
+        cf2 = gcd(cf2, y1 + y3)
+ 
+        cf3 = gcd(x1 - x3, y1 - y3)
+        cf3 = gcd(cf3, x1 - x4)
+        cf3 = gcd(cf3, y1 - y4)
+ 
+        cf4 = gcd(2, x1 + x3)
+        cf4 = gcd(cf4, y1 + y3)
+        cf4 = gcd(cf4, x1 + x4)
+        cf4 = gcd(cf4, y1 + y4)
+ 
+        cfa = gcd(cf1, cf3)
+        cfb = gcd(cf2, cf4)
+ 
+ 
+        # Remove any common factors
+        d12 = d12 / (cf1 * cf2)
+        d13 = d13 / (cf1 * cf2)
+ 
+ 
+ 
+        # GCD of differences
+        val = gcd(d12, d13)
+        val = gcd(val, d14)
+        print "gcd:", val
+        val = gcd(val, d15)
+        val = gcd(val, d23)
+        val = gcd(val, d24)
+        val = gcd(val, d25)
+        val = gcd(val, d34)
+        val = gcd(val, d35)
+        val = gcd(val, d45)
+ 
+        # d5 is one value known in clear to rider
+        e_val = val
+        r_val = d5 - (driv_dist * e_val)
+ 
+        # e and r recovered
+        print "recover:", e_val, r_val
+ 
+ 
+        # distances recovered
+        d1_val = (d1 - r_val)/e_val
+        d2_val = (d2 - r_val)/e_val
+        d3_val = (d3 - r_val)/e_val
+        d4_val = (d4 - r_val)/e_val
+ 
+        d1_val = d1_val ** 0.5
+        d2_val = d2_val ** 0.5
+        d3_val = d3_val ** 0.5
+        d4_val = d4_val ** 0.5
+ 
+#       print d1_val, d2_val, d3_val, d4_val
+#       print d1_store ** 0.5, d2_store ** 0.5, d3_store ** 0.5, d4_store ** 0.5
+ 
+        # since mapping b/w corners and distances are not known
+        # do a brute force mapping of all possible combinations over all adjacent grids
+        all_points_comb = []
+ 
+        for grid_id in range(1,len(grid_coords_utm)):
+                lb = grid_coords_utm[grid_id][0]
+                ub = grid_coords_utm[grid_id][1]
+                left_bot = (lb[0], lb[1])
+                left_top = (lb[0], ub[1])
+                right_bot = (ub[0], lb[1])
+                right_top = (ub[0], ub[1])
+ 
+ 
+                all_points_comb.append((left_top, d1_val, right_top, d2_val, left_bot, d3_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d1_val, right_top, d2_val, left_bot, d4_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d1_val, right_top, d3_val, left_bot, d2_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d1_val, right_top, d3_val, left_bot, d4_val, right_bot, d2_val))
+                all_points_comb.append((left_top, d1_val, right_top, d4_val, left_bot, d2_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d1_val, right_top, d4_val, left_bot, d3_val, right_bot, d2_val))
+ 
+                all_points_comb.append((left_top, d2_val, right_top, d1_val, left_bot, d3_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d2_val, right_top, d1_val, left_bot, d4_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d2_val, right_top, d3_val, left_bot, d1_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d2_val, right_top, d3_val, left_bot, d4_val, right_bot, d1_val))
+                all_points_comb.append((left_top, d2_val, right_top, d4_val, left_bot, d1_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d2_val, right_top, d4_val, left_bot, d3_val, right_bot, d1_val))
+ 
+                all_points_comb.append((left_top, d3_val, right_top, d2_val, left_bot, d1_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d3_val, right_top, d2_val, left_bot, d4_val, right_bot, d1_val))
+                all_points_comb.append((left_top, d3_val, right_top, d1_val, left_bot, d2_val, right_bot, d4_val))
+                all_points_comb.append((left_top, d3_val, right_top, d1_val, left_bot, d4_val, right_bot, d2_val))
+                all_points_comb.append((left_top, d3_val, right_top, d4_val, left_bot, d2_val, right_bot, d1_val))
+                all_points_comb.append((left_top, d3_val, right_top, d4_val, left_bot, d1_val, right_bot, d2_val))
+ 
+                all_points_comb.append((left_top, d4_val, right_top, d2_val, left_bot, d3_val, right_bot, d1_val))
+                all_points_comb.append((left_top, d4_val, right_top, d2_val, left_bot, d1_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d4_val, right_top, d3_val, left_bot, d2_val, right_bot, d1_val))
+                all_points_comb.append((left_top, d4_val, right_top, d3_val, left_bot, d1_val, right_bot, d2_val))
+                all_points_comb.append((left_top, d4_val, right_top, d1_val, left_bot, d2_val, right_bot, d3_val))
+                all_points_comb.append((left_top, d4_val, right_top, d1_val, left_bot, d3_val, right_bot, d2_val))
+ 
+ 
+        candidate_points = []
+        valid_points = []
+ 
+ 
+ 
+        # check if each of the above points match vis-a-vis their distances
+        for i in range(len(all_points_comb)):
+                p = verify_tuple_validity(all_points_comb[i])
+                if p[0] != -1:
+                        candidate_points.append(p)
+ 
+        # return all such retrieved points
+        #
+        # Check which of the points lie on the rider circle
+        print "Total valid points count:", len(candidate_points), "Driv dist:", driv_dist
+        for i in range(len(candidate_points)):
+                p_dist = get_ed_coord(rider_coords, candidate_points[i])
+                if p_dist == driv_dist:
+                        valid_points.append(candidate_points[i])
+ 
+        return valid_points
+ 
+ 
+ans = []
+for k in range(len(la_locations_utm)):
+        vp = main_attack(k)
+        print "main_attack done for driver:", i, "obtained count:", len(vp)
+        if len(vp) != 0 :
+                ans.append(vp)
+ 
+print "rec = ["
+for i in range(len(ans)):
+        print ans[i], ","
+print "]"
+print "Recovered ", len(ans), "out of ", len(la_locations_utm)
+ 
+############################ END OF FILE ##########################
+ 
+# FILE locations_utm.py
+# Driver locations for g1
+la_locations_utm = [
+( ( 589580, 4515764 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588325, 4514327 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588999, 4515934 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 588183, 4514697 ), ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+## Driver locations for g2
+( ( 591695, 4517637 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 591419, 4518004 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 590533, 4517929 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 591378, 4517739 ), ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+## Driver locations for g3
+( ( 597513, 4514546 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 597703, 4515748 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 596552, 4515469 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 596785, 4515701 ), ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+## Driver locations for g4
+( ( 593598, 4513356 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 592119, 4512630 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 592292, 4512619 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+( ( 593250, 4513410 ), ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+]
+# Rider location in g
+la_rider_loc_utm = [
+( ( 592461, 4514364 ), ( 591896, 4514201 ), ( 593896, 4516201 ) ) ,
+]
+# grid coords g_lb, g_ub, g1.. , g2.., g3..
+grid_coords_utm = [
+( ( 591896, 4514201 ), ( 593896, 4516201 ) ) ,
+( ( 587896, 4514201 ), ( 589896, 4516201 ) ) ,
+( ( 589896, 4516201 ), ( 591896, 4518201 ) ) ,
+( ( 595896, 4514201 ), ( 597896, 4516201 ) ) ,
+( ( 591896, 4512201 ), ( 593896, 4514201 ) ) ,
+]
+ 
+############################ END OF FILE ##########################
+ 
+ 
+#
+# FILE : google_apis_attack.py
+# usage : python google_apis_attack.py
+# This is used to check if a given location is nearest a road
+#
+# It needs rec[] structure from attack_output.py  - as generated by sage code.
+# NOTE : Only needed if there are multiple locations for a given driver
+ 
+from math import sqrt
+import utm
+from geopy.distance import distance
+import googlemaps
+from datetime import datetime
+import random
+import sys
+ 
+from attack_output import *
+ 
+# Visit https://developers.google.com/maps/documentation/javascript/get-api-key
+# to obtain a Map API key, with Road API and Distance Matrix API enabled
+ 
+api_key = YOUR_KEY_HERE
+gmaps = googlemaps.Client(key=api_key)
+ 
+def get_ed(A,B, d_x, d_y):
+        ed = ((A - d_x) ** 2 + (B - d_y)**2) ** 0.5
+        return ed
+ 
+ 
+def latlon_to_utm(latlon_coord):
+ 
+            # Example : utm.from_latlon(51.2, 7.5)
+            # Output: (395201.3103811303, 5673135.241182375, 32, 'u')
+ 
+    (la, lo) = latlon_coord
+    utm_coord = utm.from_latlon(la, lo)
+#    print(utm_coord)
+    new_utm_coord = (round(utm_coord[0], 0), round(utm_coord[1], 0), utm_coord[2], utm_coord[3])
+    return new_utm_coord
+ 
+ 
+def utm_to_latlon(utm_v1, utm_v2):
+    # los angeles : 11, 'S'
+    # dallas : 14, 'S'
+    # new york : 18, 'T'
+    # sydney : 56, 'H'
+    # new del : 43, 'R'
+    # paris : 31, 'U'
+    lat, lon = utm.to_latlon(utm_v1, utm_v2, 11, 'S')
+    return (lat, lon)
+ 
+ 
+from math import cos, asin, sqrt, pi
+ 
+# www.stackoverflow.com - calculate distance between two latitude longitute points
+def distance_bw_latlon_pts(lat1, lon1, lat2, lon2):
+    p = pi/180
+    a = 0.5 - cos((lat2-lat1)*p)/2 + cos(lat1*p) * cos(lat2*p) * (1-cos((lon2-lon1)*p))/2
+    return 12742 * asin(sqrt(a)) #2*R*asin...
+ 
+ 
+def main_fn():
+ 
+    success_count = 0
+    for i in range(len(rec)):
+        lat_lon_vals = []
+        for j in range(len(rec[i])):
+            ll_val = utm_to_latlon(rec[i][j][0], rec[i][j][1])
+            lat_lon_vals.append(ll_val)
+ 
+        print(rec[i])
+        print(lat_lon_vals)
+#        print(" ")
+ 
+ 
+        d_res = []
+        for j in range(len(lat_lon_vals)):
+            res = gmaps.nearest_roads(lat_lon_vals[j])
+            print(lat_lon_vals[j], "res:", res)
+            if len(res) == 0:
+#                print("To discard:", j, lat_lon_vals[j])
+#                print(" ")
+                continue
+            lat = res[0]['location']['latitude']
+            lon = res[0]['location']['longitude']
+            d = distance_bw_latlon_pts(lat, lon, lat_lon_vals[j][0], lat_lon_vals[j][1])
+            d_res.append(d)
+#            print("To road Distance of:", j, d)
+#            print(" ")
+        min_d = min(d_res)
+        for j in range(len(d_res)):
+            if min_d == d_res[j]:
+                if j == 0:
+                    ## NOTE NOTE : IT IS SEEN THAT INDEX 0 HAS THE ORIG LOC
+                    print("SUCCESS Least to_road dist:", min_d, lat_lon_vals[j])
+                    success_count += 1
+                else:
+                    print("fail Least to_road dist:", min_d, lat_lon_vals[j])
+                break
+        print(" ")
+    print("Success count:", success_count, " out of ", len(rec))
+ 
+main_fn()
+ 
+ 
+############################ END OF FILE ##########################
+ 
+ 
+## FILE : attack_output.py
+ 
+rec = [
+[(455591.000000000, 5.40924000000000e6), (455591.000000000, 5.41495600000000e6), (447948.000000000, 5.40924000000000e6), (447948.000000000, 5.41495600000000e6)] ,
+]
+ 
+ 
+ 
+############################ END OF FILE ##########################
+ 
+ 
+ 
+# FILE : generate_road_locations.py
+# used to generate random grid and driver locations when given only point in a city
+# files locations_utm.py is created that needs to be read into attack_pRideHuang.sage file
+#
+# NOTE: make sure the UTM coordinates are properly set for a given city in utm_to_latlon() function
+#
+from math import sqrt
+import utm
+from geopy.distance import distance
+import googlemaps
+from datetime import datetime
+import random
+ 
+api_key = YOUR_KEY_HERE
+gmaps = googlemaps.Client(key=api_key)
+ 
+# given UTM x_coord and y_coord generate all the 5 grids
+# g1 (west), g2 (north), g3 (east), g4 (south), and g(rider)
+ 
+ 
+# A location in New York City
+x_coord = 587896
+y_coord = 4514201
+ 
+ 
+ 
+x_g1_lb = x_coord
+y_g1_lb = y_coord
+x_g1_ub = x_g1_lb + 2000
+y_g1_ub = y_g1_lb + 2000
+ 
+x_g2_lb = x_g1_ub
+y_g2_lb = y_g1_ub
+x_g2_ub = x_g2_lb + 2000
+y_g2_ub = y_g2_lb + 2000
+ 
+x_g_lb = x_g1_ub + 2000
+y_g_lb = y_g1_lb
+x_g_ub = x_g_lb + 2000
+y_g_ub = y_g_lb + 2000
+ 
+x_g3_lb = x_g_ub + 2000
+y_g3_lb = y_g_lb
+x_g3_ub = x_g3_lb + 2000
+y_g3_ub = y_g3_lb + 2000
+ 
+x_g4_lb = x_g_lb
+y_g4_lb = y_g_lb - 2000
+x_g4_ub = x_g4_lb + 2000
+y_g4_ub = y_g4_lb + 2000
+ 
+ 
+ 
+def latlon_to_utm(latlon_coord):
+ 
+            # Example : utm.from_latlon(51.2, 7.5)
+            # Output: (395201.3103811303, 5673135.241182375, 32, 'u')
+ 
+#    print(latlon_coord)
+    (la, lo) = latlon_coord
+    utm_coord = utm.from_latlon(la, lo)
+    print(utm_coord)
+    new_utm_coord = (round(utm_coord[0], 0), round(utm_coord[1], 0), utm_coord[2], utm_coord[3])
+    return new_utm_coord
+ 
+def utm_to_latlon(utm_v1, utm_v2):
+    # los angeles : 11, 'S'
+    # dallas : 14, 'S'
+    # new york : 18, 'T'
+    # sydney : 56, 'H'
+    # new delhi : 43, 'R'
+    # paris : 31, 'U'
+    lat, lon = utm.to_latlon(utm_v1, utm_v2, 18, 'T')
+    return (lat, lon)
+ 
+ 
+def generate_random_locations_xy(x_lb, y_lb, x_ub, y_ub, n):
+ 
+    count = 0
+    while True:
+        x = random.randint(x_lb, x_ub)
+        y = random.randint(y_lb, y_ub)
+ 
+        # depending on location make sure to correct the below function
+        ll = utm_to_latlon(x, y)
+        res = gmaps.nearest_roads(ll)
+        if len(res) == 0:
+            continue
+        print(res)
+ 
+        # lat lon of nearest road
+        lat = res[0]['location']['latitude']
+        lon = res[0]['location']['longitude']
+        fll.write("( ( %f, %f ), ( %d, %d ), ( %d, %d ) ),\n" % (lat, lon, x_lb, y_lb, x_ub, y_ub))
+        ures = latlon_to_utm((lat, lon))
+        urx = ures[0]
+        ury = ures[1]
+        futm.write("( ( %d, %d ), ( %d, %d ), ( %d, %d ) ) , \n" % (urx, ury, x_lb, y_lb, x_ub, y_ub))
+ 
+        count += 1
+        if count == n:
+            break
+ 
+ 
+    return
+ 
+ 
+ 
+fll = open("locations_ll.py", "w")
+futm = open("locations_utm.py", "w")
+ 
+fll.write("# Driver locations for g1  \n")
+futm.write("# Driver locations for g1  \n")
+fll.write("la_locations_ll = [ \n")
+futm.write("la_locations_utm = [ \n")
+ 
+ 
+# Currently generating 4 locations in each adjacent grid
+generate_random_locations_xy(x_g1_lb, y_g1_lb, x_g1_ub, y_g1_ub, 4)
+ 
+ 
+fll.write("#")
+futm.write("#")
+ 
+fll.write("# Driver locations for g2  \n")
+futm.write("# Driver locations for g2  \n")
+generate_random_locations_xy(x_g2_lb, y_g2_lb, x_g2_ub, y_g2_ub, 4)
+fll.write("#")
+futm.write("#")
+ 
+fll.write("# Driver locations for g3  \n")
+futm.write("# Driver locations for g3  \n")
+generate_random_locations_xy(x_g3_lb, y_g3_lb, x_g3_ub, y_g3_ub, 4)
+fll.write("#")
+futm.write("#")
+ 
+fll.write("# Driver locations for g4  \n")
+futm.write("# Driver locations for g4  \n")
+generate_random_locations_xy(x_g4_lb, y_g4_lb, x_g4_ub, y_g4_ub, 4)
+ 
+ 
+fll.write("] \n")
+futm.write("] \n")
+ 
+fll.write("# Rider location in g \nla_rider_loc_ll = [ \n")
+futm.write("# Rider location in g \nla_rider_loc_utm = [ \n")
+generate_random_locations_xy(x_g_lb, y_g_lb, x_g_ub, y_g_ub, 1)
+fll.write("] \n")
+futm.write("] \n")
+ 
+futm.write("# grid coords g_lb, g_ub, g1.. , g2.., g3.. \ngrid_coords_utm = [ \n")
+futm.write("( ( %d, %d ), ( %d, %d ) ) , \n" % (x_g_lb, y_g_lb, x_g_ub, y_g_ub))
+futm.write("( ( %d, %d ), ( %d, %d ) ) , \n" % (x_g1_lb, y_g1_lb, x_g1_ub, y_g1_ub))
+futm.write("( ( %d, %d ), ( %d, %d ) ) , \n" % (x_g2_lb, y_g2_lb, x_g2_ub, y_g2_ub))
+futm.write("( ( %d, %d ), ( %d, %d ) ) , \n" % (x_g3_lb, y_g3_lb, x_g3_ub, y_g3_ub))
+futm.write("( ( %d, %d ), ( %d, %d ) ) , \n" % (x_g4_lb, y_g4_lb, x_g4_ub, y_g4_ub))
+fll.write("] \n")
+futm.write("] \n")
+ 
+ 
+fll.close
+futm.close
+ 
+print("Generated locations_ll and locations_utm files")
+ 
+############################ END OF FILE ##########################
+
